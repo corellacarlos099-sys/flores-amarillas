@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        margin: 0;
+        background: #020205;
+        overflow: hidden;
+        user-select: none;
+        -webkit-user-select: none;
+        font-family: "Courier New", monospace;
+      }
+      canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      #hud {
+        position: fixed;
+        top: 30px;
+        width: 100%;
+        text-align: center;
+        color: #00ff66;
+        font-size: 11px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
+        pointer-events: none;
+        z-index: 10;
+        text-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="hud">
+      MACH 1.7 // ALT 380FT <br /><span
+        style="
+          font-size: 9px;
+          opacity: 0.6;
+          letter-spacing: 1px;
+          line-height: 2;
+        "
+      >
+        Arrastra para dirigir el avion de batalla← →</span
+      >
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      let jet = { x: 0, targetX: 0, targetRoll: 0, currentRoll: 0 };
+      let particles = [];
+      let time = 0;
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        jet.x = canvas.width / 2;
+        jet.targetX = canvas.width / 2;
+      }
+      function initBackground() {
+        particles = [];
+        for (let i = 0; i < 50; i++) {
+          particles.push({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            speed: Math.random() * 8 + 14,
+            length: Math.random() * 25 + 10,
+          });
+        }
+      }
+      function drawMovingScenery(roll) {
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height * 0.45);
+        ctx.rotate(roll);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.05)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(-canvas.width * 2, 0);
+        ctx.lineTo(canvas.width * 2, 0);
+        ctx.stroke();
+        ctx.restore();
+      }
+      function drawJet() {
+        ctx.save();
+        ctx.translate(jet.x, canvas.height * 0.72);
+        ctx.rotate(jet.currentRoll);
+        let flameWobble = 1 + Math.sin(time * 30) * 0.15;
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = "#ff3300";
+        ctx.fillStyle = "#ffaa00";
+        ctx.fillRect(-11, 10, 5, 30 * flameWobble);
+        ctx.fillRect(6, 10, 5, 30 * flameWobble);
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "#ffffff";
+        ctx.fillStyle = "#06060c";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -38);
+        ctx.lineTo(8, -12);
+        ctx.lineTo(48, 12);
+        ctx.lineTo(12, 12);
+        ctx.lineTo(12, 22);
+        ctx.lineTo(-12, 22);
+        ctx.lineTo(-12, 12);
+        ctx.lineTo(-48, 12);
+        ctx.lineTo(-8, -12);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = "#00ffcc";
+        ctx.beginPath();
+        ctx.moveTo(0, -22);
+        ctx.lineTo(4, -6);
+        ctx.lineTo(-4, -6);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
+      function animate() {
+        ctx.fillStyle = "rgba(2, 2, 5, 0.25)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        time += 0.04;
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+        ctx.lineWidth = 1;
+        particles.forEach((p) => {
+          ctx.save();
+          ctx.translate(canvas.width / 2, canvas.height * 0.45);
+          ctx.rotate(jet.currentRoll * -0.3);
+          ctx.translate(-canvas.width / 2, -canvas.height * 0.45);
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(p.x, p.y + p.length);
+          ctx.stroke();
+          ctx.restore();
+          p.y += p.speed;
+          if (p.y > canvas.height) {
+            p.y = -p.length;
+            p.x = Math.random() * canvas.width;
+          }
+        });
+        jet.x += (jet.targetX - jet.x) * 0.08;
+        jet.currentRoll += (jet.targetRoll - jet.currentRoll) * 0.08;
+        drawMovingScenery(jet.currentRoll * -0.3);
+        drawJet();
+        requestAnimationFrame(animate);
+      }
+      function handleInput(clientX) {
+        jet.targetX = clientX;
+        let centerRatio = (clientX - canvas.width / 2) / (canvas.width / 2);
+        jet.targetRoll = centerRatio * 0.7;
+      }
+      window.addEventListener(
+        "touchmove",
+        (e) => {
+          e.preventDefault();
+          handleInput(e.touches[0].clientX);
+        },
+        { passive: false },
+      );
+
+      window.addEventListener("mousemove", (e) => {
+        handleInput(e.clientX);
+      });
+      window.addEventListener("touchend", () => {
+        jet.targetRoll = 0;
+      });
+      window.addEventListener("mouseup", () => {
+        jet.targetRoll = 0;
+      });
+      window.addEventListener("resize", () => {
+        resize();
+        initBackground();
+      });
+      resize();
+      initBackground();
+      animate();
+    </script>
+  </body>
+</html>
